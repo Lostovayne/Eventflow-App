@@ -53,7 +53,7 @@ services:
     environment:
       POSTGRES_USER: eventflow
       POSTGRES_PASSWORD: eventflow_password
-      POSTGRES_DB: eventflow
+      POSTGRES_DB: eventflowapp
     volumes:
       - postgres-data:/var/lib/postgresql/data
 
