@@ -3,8 +3,8 @@ import { KAFKA_SERVICE, KAFKA_TOPICS } from '@app/kafka';
 import { Inject, Injectable, OnModuleInit } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ClientKafka } from '@nestjs/microservices';
-import { eq } from 'drizzle-orm';
 import * as bcrypt from 'bcrypt';
+import { eq } from 'drizzle-orm';
 
 @Injectable()
 export class AuthServiceService implements OnModuleInit {
