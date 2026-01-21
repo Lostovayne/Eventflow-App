@@ -1,6 +1,11 @@
 import { DatabaseService, users } from '@app/database';
 import { KAFKA_SERVICE, KAFKA_TOPICS } from '@app/kafka';
-import { Inject, Injectable, OnModuleInit } from '@nestjs/common';
+import {
+  Inject,
+  Injectable,
+  OnModuleInit,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ClientKafka } from '@nestjs/microservices';
 import * as bcrypt from 'bcrypt';
@@ -20,7 +25,7 @@ export class AuthServiceService implements OnModuleInit {
   }
 
   async register(email: string, password: string, name: string) {
-    // Check if user already exists
+    // TODO: Check if user already exists
     const existingUser = await this.dbService.db
       .select()
       .from(users)
@@ -33,7 +38,6 @@ export class AuthServiceService implements OnModuleInit {
 
     const hashedPassword = bcrypt.hashSync(password, 10);
 
-    // create new user
     const [user] = await this.dbService.db
       .insert(users)
       .values({
@@ -51,5 +55,50 @@ export class AuthServiceService implements OnModuleInit {
     });
 
     return { message: 'User registered successfully', userId: user.id };
+  }
+
+  async login(email: string, password: string) {
+    const [user] = await this.dbService.db
+      .select()
+      .from(users)
+      .where(eq(users.email, email))
+      .limit(1);
+
+    if (!user || !(await bcrypt.compare(password, user.password))) {
+      throw new UnauthorizedException('Invalid email or password');
+    }
+
+    const token = this.jwtService.sign({ sub: user.id, email: user.email });
+
+    // Send user logged in event to Kafka
+    this.kafkaClient.emit(KAFKA_TOPICS.USER_LOGIN, {
+      userId: user.id,
+      timestamp: new Date().toISOString(),
+    });
+
+    return {
+      access_token: token,
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+      },
+    };
+  }
+
+  async getProfile(userId: string) {
+    const [user] = await this.dbService.db
+      .select({
+        id: users.id,
+        email: users.email,
+        name: users.name,
+        role: users.role,
+      })
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
+    if (!user) {
+      throw new UnauthorizedException('User not found');
+    }
   }
 }
