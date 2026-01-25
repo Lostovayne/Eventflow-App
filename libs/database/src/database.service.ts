@@ -10,8 +10,7 @@ export class DatabaseService implements OnModuleDestroy {
 
   constructor() {
     const connectionString =
-      process.env.DATABASE_URL ||
-      'postgresql://user:password@localhost:5432/mydb';
+      'postgresql://eventflow:eventflow_password@localhost:5432/eventflow?schema=public';
     this.pool = new Pool({ connectionString });
     this.db = drizzle(this.pool, { schema });
 
